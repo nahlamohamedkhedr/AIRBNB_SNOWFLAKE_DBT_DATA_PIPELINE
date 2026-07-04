@@ -33,6 +33,7 @@ AWS S3 → Staging → Bronze (incremental)
               ┌─────────┴─────────┐
               ▼                   ▼
         snapshot_listings   snapshot_hosts
+            (SCD2)              (SCD2)
               │                   │
               ▼                   ▼
         dim_listings         dim_hosts
@@ -87,8 +88,8 @@ AWS S3 → Staging → Bronze (incremental)
 │       ├── fact_bookings.sql        # table, FKs + measures 
 │       └── schema.yml               # tests & documentation
 ├── snapshots/
-│   ├── snapshot_listings.sql        
-│   └── snapshot_hosts.sql           
+│   ├── snapshot_listings.sql        # SCD2 source for dim_listings
+│   └── snapshot_hosts.sql           # SCD2 source for dim_hosts
 ├── analyses/
 │   └── explore.sql   # just data exploration
 ├── macros/
