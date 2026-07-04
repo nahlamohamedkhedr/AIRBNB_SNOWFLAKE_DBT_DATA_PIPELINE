@@ -76,7 +76,7 @@ AWS S3 → Staging → Bronze (incremental)
 ```
 ├── models
 │   ├── bronze/
-│   │   ├── bronze_bookings.sql      # incremental, filters on CREATED_AT
+│   │   ├── bronze_bookings.sql      # incremental
 │   │   ├── bronze_listings.sql      # incremental
 │   │   └── bronze_hosts.sql         # incremental
 │   ├── silver/
@@ -90,10 +90,10 @@ AWS S3 → Staging → Bronze (incremental)
 │       ├── fact_bookings.sql        # table, FKs + measures 
 │       └── schema.yml               # tests & documentation
 ├── snapshots/
-│   ├── snapshot_listings.sql        # SCD2 source for dim_listings
+│   ├── snapshot_listings.sql        # SCD1 source for dim_listings
 │   └── snapshot_hosts.sql           # SCD2 source for dim_hosts
 ├── analyses/
-│   └── point_in_time_host_analysis.sql   # example point-in-time join, not materialized
+│   └── explore.sql   # just data exploration
 ├── macros/
 │       ├── generate_schema_name.sql             
 │       ├── multiply.sql
