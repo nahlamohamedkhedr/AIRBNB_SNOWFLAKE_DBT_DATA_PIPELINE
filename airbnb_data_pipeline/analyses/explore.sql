@@ -1,2 +1,2 @@
 
-select * from {{ ref('obt') }} limit 5 
+select * from {{ ref('silver_bookings') }} limit 5

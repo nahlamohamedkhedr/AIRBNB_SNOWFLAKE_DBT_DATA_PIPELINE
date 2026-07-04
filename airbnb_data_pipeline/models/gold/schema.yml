@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: dim_listings
+    columns:
+      - name: listing_id
+        tests: [unique, not_null]
+
+  - name: dim_hosts
+    columns:
+      - name: host_id
+        tests: [not_null]
+
+  - name: dim_date
+    columns:
+      - name: date_id
+        tests: [unique, not_null]
+
+  - name: fact_bookings
+    columns:
+      - name: booking_id
+        tests: [unique, not_null]
+      - name: listing_id
+        tests:
+          - not_null
+          - relationships: {to: ref('dim_listings'), field: listing_id}
+      - name: date_id
+        tests:
+          - not_null
+          - relationships: {to: ref('dim_date'), field: date_id}
+          

@@ -41,7 +41,4 @@ models:
     gold:
       +materialized: table # all models in this gold directory will be built as tables
       +schema: gold # all models in this gold directory will be built in the "gold" schema
-      ephemeral:
-        +materialized: ephemeral # all models in this ephemeral directory will be built as ephemeral
 
-        
