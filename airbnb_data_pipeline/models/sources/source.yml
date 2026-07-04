@@ -1,0 +1,11 @@
+
+sources:
+  - name: STAGING  
+    database: AIRBNB_DB
+    schema: STAGING_SCHEMA 
+    tables:
+      - name: LISTINGS
+      - name: BOOKINGS
+      - name: HOSTS
+
+      
