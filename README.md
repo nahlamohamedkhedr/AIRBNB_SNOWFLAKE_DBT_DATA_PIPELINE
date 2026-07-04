@@ -51,7 +51,6 @@ AWS S3 → Staging → Bronze (incremental)
 - **`fact_bookings`** — one row per booking. Contains foreign keys (`listing_id`, `host_id`, `date_id`) and measures only (`total_booking_amount`, `service_fee`, `cleaning_fee`, `price_per_night`, `accommodates`, `bedrooms`, `bathrooms`, `response_rate`). No dimension attributes are duplicated into the fact — joins happen at query time, not build time.
 - **`dim_listings`** — SCD Type 1 (current state only). Listing attributes rarely change in ways that matter to this business case, so history isn't tracked.
 - **`dim_hosts`** — SCD Type 2 (full history via `dbt snapshot`). Host status (superhost, response rate tier) changes over time, and answering "did superhosts already out-earn others before earning the badge?" requires knowing a host's status *as of the booking date*, not today.
-- **`dim_hosts_current`** — a thin view over `dim_hosts` filtered to `is_current = true`, for everyday dashboards that don't need historical joins.
 - **`dim_date`** — standard date dimension (2018–2027) generated natively in Snowflake, plus a `9999-12-31` sentinel row so any missing/invalid booking date still resolves to a valid foreign key instead of breaking referential integrity.
 
 
