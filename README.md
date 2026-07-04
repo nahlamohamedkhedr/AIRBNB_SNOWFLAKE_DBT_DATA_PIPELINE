@@ -60,7 +60,6 @@ AWS S3 → Staging → Bronze (incremental)
 - **One tested source of truth** — `fact_bookings` plus conformed dimensions replace ad hoc joins across teams
 - **Self-service analytics** — analysts query a simple star schema instead of raw, scattered extracts
 - **Data quality guarantees** — `unique`, `not_null`, and `relationships` tests catch duplication or orphaned keys before they reach a dashboard (a real fan-out bug was caught and fixed this way during development)
-- **Point-in-time analysis** — SCD2 on `dim_hosts` enables questions like "was this host already a superhost when this booking happened?" that a Type-1-only model couldn't answer
 - **Scalable foundation** — modular bronze/silver/gold layers allow new sources (reviews, pricing history) to be added without re-architecting
 
 ## Tech stack
@@ -90,7 +89,7 @@ AWS S3 → Staging → Bronze (incremental)
 │       ├── fact_bookings.sql        # table, FKs + measures 
 │       └── schema.yml               # tests & documentation
 ├── snapshots/
-│   ├── snapshot_listings.sql        # SCD1 source for dim_listings
+│   ├── snapshot_listings.sql        # SCD2 source for dim_listings
 │   └── snapshot_hosts.sql           # SCD2 source for dim_hosts
 ├── analyses/
 │   └── explore.sql   # just data exploration
