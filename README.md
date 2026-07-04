@@ -24,27 +24,8 @@ A single source of truth: a tested, version-controlled transformation layer betw
 
 ## Architecture
 
-```
-AWS S3 → Staging → Bronze (incremental)
-                        │
-                        ▼
-                    Silver (incremental, cleaned & typed)
-                        │
-              ┌─────────┴─────────┐
-              ▼                   ▼
-        snapshot_listings   snapshot_hosts
-            (SCD2)              (SCD2)
-              │                   │
-              ▼                   ▼
-        dim_listings         dim_hosts
-        (SCD Type 1 —        (SCD Type 2 —
-        current state)       full history)
-              │                   │
-              └─────────┬─────────┘
-                         │
-                    fact_bookings   ◄── dim_date
-                (FKs + measures)
-```
+<img width="1536" height="1024" alt="airbnb-architecture" src="https://github.com/user-attachments/assets/a7a8ced3-9583-498d-8a27-0a02a9c39a10" />
+
 
 ## Data model
 
