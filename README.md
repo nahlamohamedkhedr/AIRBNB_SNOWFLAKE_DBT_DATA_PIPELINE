@@ -1,48 +1,121 @@
-# Airbnb Data Pipeline - dbt Project
+# Airbnb Data Pipeline — dbt on Snowflake
 
-This is my end-to-end **Analytics Engineering** project built with **dbt** on Snowflake. I took raw Airbnb booking, listing, and host data and transformed it into a clean, analytics-ready **Star Schema** that business teams can actually use.
+![dbt](https://img.shields.io/badge/dbt--core-1.11-orange)
+![Snowflake](https://img.shields.io/badge/warehouse-Snowflake-29B5E8)
+![Source](https://img.shields.io/badge/source-AWS%20S3-yellow)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
----
-
-## The Problem
-
-Airbnb has tons of data about bookings, listings, and hosts — but it's scattered across different tables. Analysts were spending too much time doing complex joins and fixing data issues every time they needed a report. This slowed down decision-making around revenue, cancellations, and host performance.
-
----
-
-## What I Built
-
-I designed and implemented a complete **modern data pipeline** using the **Medallion Architecture** (Bronze → Silver → Gold):
-
-- **Bronze Layer**: Raw data loaded incrementally
-- **Silver Layer**: Cleaned, standardized, and tested data
-- **Gold Layer**: 
-  - One Big Table (for testing)
-  - Ephemeral models for intermediate logic
-  - Star Schema with Fact and Dimension tables
-  - Snapshots (SCD Type 2) for tracking changes over time
-
-The final result is a clean, well-documented data model that makes analysis fast and reliable.
+An end-to-end analytics engineering project that transforms raw Airbnb booking, listing, and host data into a governed, tested, business-ready star schema — built with **dbt Core** on **Snowflake**, following the **Medallion (Bronze → Silver → Gold) architecture**.
 
 ---
 
-## Business Value
+## Problem statement
 
-This project enables:
-- Faster reporting on revenue, occupancy, and cancellation trends
-- Better understanding of host performance and guest behavior
-- Self-service analytics for Marketing, Finance, and Operations teams
-- Scalable foundation for future business questions
+Airbnb's operations, marketing, and finance teams needed fast, reliable answers to core business questions — which markets and property types drive the most revenue, how host quality (superhost status, responsiveness) correlates with booking value, and how demand shifts seasonally — but the underlying data lived as disconnected raw extracts in S3 with no shared, tested data model. Every question required analysts to manually reconcile booking, listing, and host files, producing slow, inconsistent, and error-prone reporting.
 
----
+## Solution
 
-## Tech Stack
+A single source of truth: a tested, version-controlled transformation layer between raw storage and the tools analysts already use, built on the medallion architecture.
 
-- **dbt Core** (v1.11)
+| Layer | Purpose |
+|---|---|
+| **Bronze** | Raw data loaded incrementally from AWS S3 (via a staging schema) into Snowflake, preserving source fidelity |
+| **Silver** | Cleaned, standardized, deduplicated, and incrementally maintained data |
+| **Gold** | Business-ready star schema: a fact table of measurable events plus conformed dimensions, with full change history where the business needs it |
+
+## Architecture
+
+```
+AWS S3 → Staging → Bronze (incremental)
+                        │
+                        ▼
+                    Silver (incremental, cleaned & typed)
+                        │
+              ┌─────────┴─────────┐
+              ▼                   ▼
+        snapshot_listings   snapshot_hosts
+        (SCD2 history)      (SCD2 history)
+              │                   │
+              ▼                   ▼
+        dim_listings         dim_hosts
+        (SCD Type 1 —        (SCD Type 2 —
+        current state)       full history)
+              │                   │
+              └─────────┬─────────┘
+                         │
+                    fact_bookings   ◄── dim_date
+                (FKs + measures)
+```
+
+## Data model
+
+- **`fact_bookings`** — one row per booking. Contains foreign keys (`listing_id`, `host_id`, `date_id`) and measures only (`total_booking_amount`, `service_fee`, `cleaning_fee`, `price_per_night`, `accommodates`, `bedrooms`, `bathrooms`, `response_rate`). No dimension attributes are duplicated into the fact — joins happen at query time, not build time.
+- **`dim_listings`** — SCD Type 1 (current state only). Listing attributes rarely change in ways that matter to this business case, so history isn't tracked.
+- **`dim_hosts`** — SCD Type 2 (full history via `dbt snapshot`). Host status (superhost, response rate tier) changes over time, and answering "did superhosts already out-earn others before earning the badge?" requires knowing a host's status *as of the booking date*, not today.
+- **`dim_hosts_current`** — a thin view over `dim_hosts` filtered to `is_current = true`, for everyday dashboards that don't need historical joins.
+- **`dim_date`** — standard date dimension (2018–2027) generated natively in Snowflake, plus a `9999-12-31` sentinel row so any missing/invalid booking date still resolves to a valid foreign key instead of breaking referential integrity.
+
+
+## Business value
+
+- **One tested source of truth** — `fact_bookings` plus conformed dimensions replace ad hoc joins across teams
+- **Self-service analytics** — analysts query a simple star schema instead of raw, scattered extracts
+- **Data quality guarantees** — `unique`, `not_null`, and `relationships` tests catch duplication or orphaned keys before they reach a dashboard (a real fan-out bug was caught and fixed this way during development)
+- **Point-in-time analysis** — SCD2 on `dim_hosts` enables questions like "was this host already a superhost when this booking happened?" that a Type-1-only model couldn't answer
+- **Scalable foundation** — modular bronze/silver/gold layers allow new sources (reviews, pricing history) to be added without re-architecting
+
+## Tech stack
+
+- **dbt Core** 1.11
 - **Snowflake**
-- SQL + Jinja
-- Git & GitHub
+- **AWS S3** (raw source)
+- **SQL + Jinja**
+- **Git / GitHub**
 
----
+## Project structure
 
-## Project Structure
+```
+├── models
+│   ├── bronze/
+│   │   ├── bronze_bookings.sql      # incremental, filters on CREATED_AT
+│   │   ├── bronze_listings.sql      # incremental
+│   │   └── bronze_hosts.sql         # incremental
+│   ├── silver/
+│   │   ├── silver_bookings.sql      # incremental, unique_key=booking_id
+│   │   ├── silver_listings.sql      # incremental, unique_key=listing_id
+│   │   └── silver_hosts.sql         # incremental, unique_key=host_id
+│   └── gold/
+│       ├── dim_listings.sql         # table, SCD Type 1
+│       ├── dim_hosts.sql            # table, SCD Type 2
+│       ├── dim_date.sql             # table, native Snowflake date spine
+│       ├── fact_bookings.sql        # table, FKs + measures 
+│       └── schema.yml               # tests & documentation
+├── snapshots/
+│   ├── snapshot_listings.sql        # SCD2 source for dim_listings
+│   └── snapshot_hosts.sql           # SCD2 source for dim_hosts
+├── analyses/
+│   └── point_in_time_host_analysis.sql   # example point-in-time join, not materialized
+├── macros/
+│       ├── generate_schema_name.sql             
+│       ├── multiply.sql
+│       ├── tag.sql                 
+│       └── trimmer.sql               
+├── seeds/
+├── dbt_project.yml
+└── README.md
+```
+
+## Materialization choices, and why
+
+| Model | Materialization | Why |
+|---|---|---|
+| Bronze | `incremental` | Source grows continuously; full reprocessing would get expensive over time |
+| Silver | `incremental` | Same reasoning — cleaned data still scales with the raw source |
+| Gold dimensions (`dim_listings`, `dim_hosts`, `dim_date`) | `table` | Small (hundreds to a few thousand rows); a full rebuild costs a fraction of a second, so incremental's added complexity (merge logic, unique keys, backfill edge cases) isn't worth it here |
+| `fact_bookings` | `table` | Same reasoning at current scale; revisit as `incremental` if booking volume grows into the millions |
+
+## Testing & data quality
+
+- Generic tests (`unique`, `not_null`, `relationships`) on every gold model, defined in `schema.yml`
+- `relationships` tests enforce referential integrity between `fact_bookings` and every dimension
+- A real grain bug (dimensions fanning out to booking-level row counts instead of their true cardinality) was caught by these tests during development and traced back to snapshotting from the wrong source layer — fixed by snapshotting `silver_listings`/`silver_hosts` instead of the OBT
