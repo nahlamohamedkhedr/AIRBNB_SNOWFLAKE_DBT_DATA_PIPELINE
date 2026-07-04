@@ -3,7 +3,6 @@
 ![dbt](https://img.shields.io/badge/dbt--core-1.11-orange)
 ![Snowflake](https://img.shields.io/badge/warehouse-Snowflake-29B5E8)
 ![Source](https://img.shields.io/badge/source-AWS%20S3-yellow)
-![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 An end-to-end analytics engineering project that transforms raw Airbnb booking, listing, and host data into a governed, tested, business-ready star schema — built with **dbt Core** on **Snowflake**, following the **Medallion (Bronze → Silver → Gold) architecture**.
 
